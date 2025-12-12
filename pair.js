@@ -1825,9 +1825,31 @@ async function EmpirePair(number, res) {
         const { version } = await fetchLatestBaileysVersion();
         const logger = pino({ level: 'silent' });
 
-        // Create store
-        const store = makeInMemoryStore({ logger });
-        stores.set(sanitizedNumber, store);
+        //// Create custom in-memory store (since makeInMemoryStore is not in gifted-baileys)
+const store = {
+    messages: new Map(),
+    loadMessage: async (remoteJid, id) => {
+        const key = `${remoteJid}:${id}`;
+        return store.messages.get(key) || null;
+    },
+    saveMessage: async (remoteJid, message) => {
+        if (!message.key?.id) return;
+        const key = `${remoteJid}:${message.key.id}`;
+        store.messages.set(key, message);
+    },
+    bind: (ev) => {
+        // Listen for new messages and save them
+        ev.on('messages.upsert', async ({ messages }) => {
+            for (const msg of messages) {
+                if (msg.key.remoteJid && msg.key.id) {
+                    await store.saveMessage(msg.key.remoteJid, msg);
+                }
+            }
+        });
+    }
+};
+
+stores.set(sanitizedNumber, store);
 
         const socket = makeWASocket({
             version,
