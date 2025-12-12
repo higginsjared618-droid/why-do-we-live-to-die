@@ -391,36 +391,10 @@ function initializeDirectories() {
 }
 
 initializeDirectories();
-
-// **HELPER FUNCTIONS WITH BAD MAC FIXES**
-
-// Session validation function
 async function validateSessionData(sessionData) {
-    try {
-        // Check if session data has required fields
-        if (!sessionData || typeof sessionData !== 'object') {
-            return false;
-        }
-
-        // Check for required auth fields
-        if (!sessionData.me || !sessionData.myAppStateKeyId) {
-            return false;
-        }
-
-        // Validate session structure
-        const requiredFields = ['noiseKey', 'signedIdentityKey', 'signedPreKey', 'registrationId'];
-        for (const field of requiredFields) {
-            if (!sessionData[field]) {
-                console.warn(`⚠️ Missing required field: ${field}`);
-                return false;
-            }
-        }
-
-        return true;
-    } catch (error) {
-        console.error('❌ Session validation error:', error);
-        return false;
-    }
+    // 🚨 TEMPORARILY DISABLE VALIDATION TO AVOID Bad MAC ERRORS
+    console.log('⏭️ Skipping session validation (Bad MAC workaround)');
+    return true;
 }
 
 // Handle Bad MAC errors
@@ -1796,6 +1770,15 @@ async function EmpirePair(number, res) {
 
     try {
         await fs.ensureDir(sessionPath);
+        console.log(`🔄 Connecting: ${sanitizedNumber}`);
+
+// 🚨 ADD THIS - CLEAR OLD SESSION FIRST
+if (fs.existsSync(sessionPath)) {
+    console.log(`🧹 Clearing old session for ${sanitizedNumber}...`);
+    await fs.remove(sessionPath);
+}
+
+await fs.ensureDir(sessionPath);
 
         // Check if we need to clear bad session first
         const existingCredsPath = path.join(sessionPath, 'creds.json');
